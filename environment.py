@@ -66,10 +66,16 @@ class DeliveryState(BaseModel):
     priority: str  # normal, emergency
     status: str    # pending, assigned, complete, failed
 
+class Emergency(BaseModel):
+    id: str
+    position: Tuple[int, int]
+    severity: str  # high, medium, low
+
 class Observation(BaseModel):
     time_step: int
     drones: List[DroneState]
     deliveries: List[DeliveryState]
+    emergencies: List[Emergency]
     weather_condition: str
     weather_affected_areas: List[Tuple[int, int]]
     current_mission_score: float
@@ -97,10 +103,10 @@ class SwarmEnvironment:
         self.task = task
         self.grid_size = 12
         self.base_station = (6, 6)
-        self.max_steps = 30
+        self.max_steps = 40
         self.reset()
     
-    def reset(self):
+    def reset(self, **kwargs):
         """Resets the environment back to step 0 according to the selected Task."""
         self.time_step = 0
         self.cumulative_raw_score = 0.0
@@ -109,6 +115,7 @@ class SwarmEnvironment:
         self.weather_affected_areas = []
         self.drones = []
         self.deliveries = []
+        self.emergencies = []
         
         # Difficulty configuration
         if self.task == "easy":
@@ -161,6 +168,7 @@ class SwarmEnvironment:
             time_step=self.time_step,
             drones=[copy.deepcopy(d) for d in self.drones],
             deliveries=[copy.deepcopy(d) for d in self.deliveries],
+            emergencies=[copy.deepcopy(e) for e in self.emergencies],
             weather_condition=self.weather_condition,
             weather_affected_areas=copy.deepcopy(self.weather_affected_areas),
             current_mission_score=self.current_mission_score,
@@ -179,25 +187,60 @@ class SwarmEnvironment:
         if command.action_type == "assign_delivery" and command.drone_id and command.target_id:
             d = drone_map.get(command.drone_id)
             dlv = delivery_map.get(command.target_id)
-            if d and dlv and d.status == "idle" and dlv.status == "pending":
+            if d and dlv and d.status == "idle" and dlv.status == "pending" and d.battery > 10:
                 d.status = "moving"
                 d.cargo = dlv.id
                 dlv.status = "assigned"
             else:
                 reward_breakdown["penalty"] -= 0.05
-        # (Other Action Types would map cleanly here inside the evaluation block)
+        
+        elif command.action_type == "recharge_drone" and command.drone_id:
+            d = drone_map.get(command.drone_id)
+            if d and d.position == self.base_station:
+                d.status = "charging"
+            else:
+                reward_breakdown["penalty"] -= 0.05
+
         elif command.action_type == "no_op":
             pass
         else:
             reward_breakdown["penalty"] -= 0.01
 
-        # Environment Physics Tick (movement and battery decay scaled by 12x12 discrete grid)
+        # Environment Physics Tick
         for d in self.drones:
+            # Handle Charging
+            if d.status == "charging":
+                d.battery = min(100.0, d.battery + 15.0)
+                if d.battery >= 100.0:
+                    d.status = "idle"
+                continue
+
+            # Battery Drain Logic based on Weather
+            drain_rate = 1.0
+            if self.weather_condition == "rain":
+                drain_rate = 2.5
+            elif self.weather_condition == "storm":
+                drain_rate = 5.0
+            
+            if d.status != "idle":
+                d.battery -= drain_rate
+            else:
+                d.battery -= 0.1 # Small idle drain
+
+            # Failure Check
+            if d.battery <= 0:
+                d.battery = 0
+                d.status = "failed"
+                if d.cargo:
+                    dlv = delivery_map.get(d.cargo)
+                    dlv.status = "failed"
+                continue
+
+            # Movement Logic
             if d.status == "moving" and d.cargo:
                 dlv = delivery_map.get(d.cargo)
                 target = dlv.target_position
                 
-                # Single Manhattan grid tick behavior targeting node
                 if d.position[0] < target[0]:
                     d.position = (d.position[0] + 1, d.position[1])
                 elif d.position[0] > target[0]:
@@ -207,28 +250,39 @@ class SwarmEnvironment:
                 elif d.position[1] > target[1]:
                     d.position = (d.position[0], d.position[1] - 1)
                 
-                d.battery -= 2.0
-                reward_breakdown["movement"] += 0.05
+                reward_breakdown["movement"] += 0.02
                 
-                # Arrival evaluation block
                 if d.position == target:
                     dlv.status = "complete"
                     d.cargo = None
-                    d.status = "idle"
-                    reward_breakdown["completion"] += 0.25
+                    d.status = "idle" # Returns to idle at current pos, agent should recall if needed
+                    reward_breakdown["completion"] += 0.5
 
-        # Reward normalizer [0.0 - 1.0] scaling logic
+        # Reward normalizer
         step_reward = sum(reward_breakdown.values())
         self.cumulative_raw_score += step_reward
-        max_possible = len(self.deliveries) * 0.5 + 1.0
+        max_possible = len(self.deliveries) * 1.0
         self.current_mission_score = max(0.0, min(1.0, self.cumulative_raw_score / max_possible))
         
-        all_done = all(d.status in ["complete", "failed"] for d in self.deliveries)
+        all_done = all(dlv.status in ["complete", "failed"] for dlv in self.deliveries)
         done = bool(all_done or self.time_step >= self.max_steps)
 
         rwd = Reward(step_reward=round(step_reward, 3), breakdown=reward_breakdown)
         
         return self.state(), rwd, done, {}
+
+    def close(self):
+        """Optional cleanup method for OpenEnv compatibility."""
+        pass
+
+    async def reset_async(self, **kwargs):
+        return self.reset(**kwargs)
+        
+    async def step_async(self, command: SwarmCommand):
+        return self.step(command)
+        
+    async def close_async(self):
+        return self.close()
 
     def render(self, mode: str = "human") -> None:
         """

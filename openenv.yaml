@@ -1,6 +1,6 @@
 name: "city-swarm-commander"
 version: "1.0.0"
-description: "The environment simulates a real-world drone fleet logistics command center (exactly like Zipline, Wing, Amazon Prime Air, and Skye Air in 2026). The LLM agent acts as the 'Swarm Commander' and must maximize the Mission Success Score (0.0-1.0) by completing time-sensitive deliveries while managing battery, weather emergencies, and drone failures."
+description: "The environment simulates a real-world drone fleet logistics command center (like Zipline, Wing, Amazon Prime Air, and Skye Air in 2026). The LLM agent acts as the high-level 'Swarm Commander' and must maximize the Mission Success Score (0.0-1.0) by completing time-sensitive deliveries while managing battery, weather emergencies, and drone failures using only high-level strategic tools."
 language: "python"
 entrypoint: "environment.py:SwarmEnvironment"
 
@@ -11,13 +11,12 @@ metrics:
 
 tasks:
   - name: "easy"
-    description: "4 drones, 6 deliveries, clear weather. A simple task for testing baseline command capabilities."
+    description: "4 drones, 6 deliveries, clear weather. Tests basic strategic capability."
   - name: "medium"
-    description: "6 drones, 12 deliveries, 1 weather event (rain). Increased complexity with rain draining batteries faster."
+    description: "6 drones, 12 deliveries, rain. Weather introduces strategic battery decay management."
   - name: "hard"
-    description: "8 drones, 20 deliveries, storm + 1-2 drone failures + communication interference log. Strategic management of constrained resources."
+    description: "8 drones, 20 deliveries, storm + drone failure mechanics. Hardcore network incident orchestration."
 
-# Pre-computed baseline scores for an empty/random agent vs capable agent
 baselines:
   easy:
     score: 0.95

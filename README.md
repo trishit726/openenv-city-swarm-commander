@@ -1,6 +1,14 @@
+---
+title: City Swarm Commander
+emoji: 🚁
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+pinned: false
+---
 # City Swarm Commander
 
-The environment simulates a real-world drone fleet logistics command center (exactly like Zipline, Wing, Amazon Prime Air, and Skye Air in 2026). The LLM agent acts as the "Swarm Commander" and must maximize the Mission Success Score (0.0-1.0) by completing time-sensitive deliveries while managing battery, weather emergencies, and drone failures. It is NOT low-level physics control -- it is high-level strategic orchestration.
+The environment simulates a real-world drone fleet logistics command center (like Zipline, Wing, Amazon Prime Air, and Skye Air in 2026). The LLM agent acts as the high-level 'Swarm Commander' and must maximize the Mission Success Score (0.0-1.0) by completing time-sensitive deliveries while managing battery, weather emergencies, and drone failures using only high-level strategic tools.
 
 ## Motivation
 With the massive expansion of urban drone delivery networks in 2026 by market leaders like Zipline and Wing, human operators can no longer orchestrate hundreds of concurrent flights manually. The "Swarm Commander" agent must rely on strategic high-level control to resolve conflicts, prioritize emergencies, and handle volatile weather conditions efficiently.

@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+
+# uv lock (large, Docker installs from requirements.txt)
+uv.lock
+
+# Pytest / test artifacts
+.pytest_cache/
+.hypothesis/
+
+# Secrets / env files
+.env
+*.env
+
+# Debug artifacts
+tmp_path.txt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
