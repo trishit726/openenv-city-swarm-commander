@@ -5,10 +5,12 @@ from typing import List, Optional
 from openai import OpenAI
 from environment import SwarmEnvironment, SwarmCommand
 
-# --- Environment Configuration ---
-MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o")
+# --- Environment Configuration (matches hackathon checklist) ---
+# Defaults ONLY for API_BASE_URL and MODEL_NAME — NOT for HF_TOKEN
 API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
-API_KEY = os.getenv("HF_TOKEN") or os.getenv("OPENAI_API_KEY") or "dummy_key"
+MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o")
+HF_TOKEN = os.getenv("HF_TOKEN")          # No default — must be set as HF Space secret
+LOCAL_IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME")  # Optional: used when testing from_docker_image()
 TASK_NAME = os.getenv("TASK_NAME", "easy")
 BENCHMARK = "city-swarm-commander"
 
@@ -28,7 +30,7 @@ def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> No
     print(f"[END] success={str(success).lower()} steps={steps} score={score:.3f} rewards={rewards_str}", flush=True)
 
 def run_task(task_type: str):
-    client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
+    client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
     env = SwarmEnvironment(task=task_type)
     
     log_start(task=task_type, env=BENCHMARK, model=MODEL_NAME)
