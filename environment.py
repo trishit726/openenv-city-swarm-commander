@@ -77,7 +77,7 @@ class Observation(BaseModel):
     emergencies: List[Emergency]
     weather_condition: str
     weather_affected_areas: List[Tuple[int, int]]
-    current_mission_score: int
+    current_mission_score: float
     natural_language_summary: str
 
 # ==========================================
@@ -108,7 +108,8 @@ class SwarmEnvironment:
     def reset(self, **kwargs):
         """Resets the environment back to step 0 according to the selected Task."""
         self.time_step = 0
-        self.current_mission_score = 0
+        self.cumulative_raw_score = 0.0
+        self.current_mission_score = 0.01
         self.weather_condition = "clear"
         self.weather_affected_areas = []
         self.drones = []
@@ -258,10 +259,10 @@ class SwarmEnvironment:
 
         # Reward normalizer
         step_reward = sum(reward_breakdown.values())
-
-        # Binary scoring: 1 if ALL deliveries complete, 0 otherwise
-        all_complete = all(dlv.status == "complete" for dlv in self.deliveries)
-        self.current_mission_score = 1 if all_complete else 0
+        self.cumulative_raw_score += step_reward
+        max_possible = len(self.deliveries) * 1.0
+        raw_score = max(0.0, min(1.0, self.cumulative_raw_score / max_possible))
+        self.current_mission_score = 0.01 + (raw_score * 0.98)  # Map [0,1] -> (0.01, 0.99)
         
         all_done = all(dlv.status in ["complete", "failed"] for dlv in self.deliveries)
         done = bool(all_done or self.time_step >= self.max_steps)

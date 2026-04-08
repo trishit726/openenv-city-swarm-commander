@@ -39,7 +39,7 @@ def run_task(task_type: str):
     done = False
     steps_taken = 0
     rewards = []
-    final_score = 0  # Initialize before try so finally block never hits UnboundLocalError
+    final_score = 0.0  # Initialize before try so finally block never hits UnboundLocalError
     success = False
     
     try:
@@ -88,7 +88,7 @@ def run_task(task_type: str):
 
         # Calculate final metrics
         final_score = state.current_mission_score
-        success = final_score == 1
+        success = final_score >= 0.7
         
     except Exception as e:
         print(f"[DEBUG] Execution error: {e}")
