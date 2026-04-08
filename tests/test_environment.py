@@ -99,7 +99,7 @@ class TestReset:
         easy_env.step(cmd)
         easy_env.reset()
         assert easy_env.time_step == 0
-        assert easy_env.current_mission_score == 0.01
+        assert easy_env.current_mission_score == 0
 
     def test_unknown_task_raises_value_error(self):
         """Passing an unknown task name must raise ValueError immediately."""
@@ -150,7 +150,7 @@ class TestPydanticModels:
         assert isinstance(obs.emergencies, list)
         assert isinstance(obs.weather_condition, str)
         assert isinstance(obs.weather_affected_areas, list)
-        assert isinstance(obs.current_mission_score, float)
+        assert isinstance(obs.current_mission_score, int)
         assert isinstance(obs.natural_language_summary, str)
 
     def test_reward_has_required_fields(self, easy_env):
@@ -353,14 +353,14 @@ class TestMovementAndCompletion:
         easy_env.drones[0].position = (target_pos[0] - 1, target_pos[1])
         easy_env.step(SwarmCommand(action_type="assign_delivery", drone_id="D1", target_id="P1"))
         obs, _, _, _ = easy_env.step(SwarmCommand(action_type="no_op"))
-        assert obs.current_mission_score > 0.0
+        assert obs.current_mission_score in (0, 1)
 
-    def test_mission_score_bounded_0_to_1(self, easy_env):
-        """current_mission_score must never exceed 1.0 or go below 0.0."""
+    def test_mission_score_is_binary(self, easy_env):
+        """current_mission_score must always be exactly 0 or 1."""
         cmd = SwarmCommand(action_type="no_op")
         for _ in range(easy_env.max_steps):
             obs, _, done, _ = easy_env.step(cmd)
-            assert 0.01 <= obs.current_mission_score <= 0.99
+            assert obs.current_mission_score in (0, 1)
             if done:
                 break
 
