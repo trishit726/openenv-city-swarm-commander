@@ -108,7 +108,6 @@ class SwarmEnvironment:
     def reset(self, **kwargs):
         """Resets the environment back to step 0 according to the selected Task."""
         self.time_step = 0
-        self.cumulative_raw_score = 0.0
         self.current_mission_score = 0.01
         self.weather_condition = "clear"
         self.weather_affected_areas = []
@@ -257,12 +256,13 @@ class SwarmEnvironment:
         else:
             reward_breakdown["penalty"] -= 0.01
 
-        # Reward normalizer
+        # Reward normalizer (internal reward tracking)
         step_reward = sum(reward_breakdown.values())
-        self.cumulative_raw_score += step_reward
-        max_possible = len(self.deliveries) * 1.0
-        raw_score = max(0.0, min(1.0, self.cumulative_raw_score / max_possible))
-        self.current_mission_score = 0.01 + (raw_score * 0.98)  # Map [0,1] -> (0.01, 0.99)
+        
+        # Effective Binary scoring: 0.99 if ALL deliveries complete, 0.01 otherwise
+        # This satisfies strictly (0, 1) range while remaining binary.
+        all_complete = all(dlv.status == "complete" for dlv in self.deliveries)
+        self.current_mission_score = 0.99 if all_complete else 0.01
         
         all_done = all(dlv.status in ["complete", "failed"] for dlv in self.deliveries)
         done = bool(all_done or self.time_step >= self.max_steps)

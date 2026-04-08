@@ -353,16 +353,14 @@ class TestMovementAndCompletion:
         easy_env.drones[0].position = (target_pos[0] - 1, target_pos[1])
         easy_env.step(SwarmCommand(action_type="assign_delivery", drone_id="D1", target_id="P1"))
         obs, _, _, _ = easy_env.step(SwarmCommand(action_type="no_op"))
-        assert obs.current_mission_score > 0.0
+        assert obs.current_mission_score == 0.01  # Should still be 0.01 because only 1 delivery isn't "all"
 
-    def test_mission_score_bounded_strictly_between_0_and_1(self, easy_env):
-        """current_mission_score must be strictly between 0.0 and 1.0 (exclusive)."""
+    def test_mission_score_is_effective_binary(self, easy_env):
+        """current_mission_score must be exactly 0.01 or 0.99."""
         cmd = SwarmCommand(action_type="no_op")
         for _ in range(easy_env.max_steps):
             obs, _, done, _ = easy_env.step(cmd)
-            assert 0.0 < obs.current_mission_score < 1.0, (
-                f"Score {obs.current_mission_score} is not strictly between 0 and 1"
-            )
+            assert obs.current_mission_score in (0.01, 0.99)
             if done:
                 break
 
