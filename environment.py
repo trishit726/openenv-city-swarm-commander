@@ -110,7 +110,7 @@ class SwarmEnvironment:
         """Resets the environment back to step 0 according to the selected Task."""
         self.time_step = 0
         self.cumulative_raw_score = 0.0
-        self.current_mission_score = 0.0
+        self.current_mission_score = 0.01
         self.weather_condition = "clear"
         self.weather_affected_areas = []
         self.drones = []
@@ -183,30 +183,7 @@ class SwarmEnvironment:
         drone_map = {d.id: d for d in self.drones}
         delivery_map = {d.id: d for d in self.deliveries}
         
-        # Action Resolution Block
-        if command.action_type == "assign_delivery" and command.drone_id and command.target_id:
-            d = drone_map.get(command.drone_id)
-            dlv = delivery_map.get(command.target_id)
-            if d and dlv and d.status == "idle" and dlv.status == "pending" and d.battery > 10:
-                d.status = "moving"
-                d.cargo = dlv.id
-                dlv.status = "assigned"
-            else:
-                reward_breakdown["penalty"] -= 0.05
-        
-        elif command.action_type == "recharge_drone" and command.drone_id:
-            d = drone_map.get(command.drone_id)
-            if d and d.position == self.base_station:
-                d.status = "charging"
-            else:
-                reward_breakdown["penalty"] -= 0.05
-
-        elif command.action_type == "no_op":
-            pass
-        else:
-            reward_breakdown["penalty"] -= 0.01
-
-        # Environment Physics Tick
+        # Environment Physics Tick (based on status set in PREVIOUS step)
         for d in self.drones:
             # Handle Charging
             if d.status == "charging":
@@ -258,11 +235,35 @@ class SwarmEnvironment:
                     d.status = "idle" # Returns to idle at current pos, agent should recall if needed
                     reward_breakdown["completion"] += 0.5
 
+        # Action Resolution Block (sets status for NEXT step)
+        if command.action_type == "assign_delivery" and command.drone_id and command.target_id:
+            d = drone_map.get(command.drone_id)
+            dlv = delivery_map.get(command.target_id)
+            if d and dlv and d.status == "idle" and dlv.status == "pending" and d.battery > 10:
+                d.status = "moving"
+                d.cargo = dlv.id
+                dlv.status = "assigned"
+            else:
+                reward_breakdown["penalty"] -= 0.05
+        
+        elif command.action_type == "recharge_drone" and command.drone_id:
+            d = drone_map.get(command.drone_id)
+            if d and d.position == self.base_station:
+                d.status = "charging"
+            else:
+                reward_breakdown["penalty"] -= 0.05
+
+        elif command.action_type == "no_op":
+            pass
+        else:
+            reward_breakdown["penalty"] -= 0.01
+
         # Reward normalizer
         step_reward = sum(reward_breakdown.values())
         self.cumulative_raw_score += step_reward
         max_possible = len(self.deliveries) * 1.0
-        self.current_mission_score = max(0.0, min(1.0, self.cumulative_raw_score / max_possible))
+        raw_score = max(0.0, min(1.0, self.cumulative_raw_score / max_possible))
+        self.current_mission_score = 0.01 + (raw_score * 0.98) # Map [0, 1] to [0.01, 0.99]
         
         all_done = all(dlv.status in ["complete", "failed"] for dlv in self.deliveries)
         done = bool(all_done or self.time_step >= self.max_steps)

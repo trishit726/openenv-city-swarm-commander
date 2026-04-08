@@ -99,7 +99,7 @@ class TestReset:
         easy_env.step(cmd)
         easy_env.reset()
         assert easy_env.time_step == 0
-        assert easy_env.current_mission_score == 0.0
+        assert easy_env.current_mission_score == 0.01
 
     def test_unknown_task_raises_value_error(self):
         """Passing an unknown task name must raise ValueError immediately."""
@@ -272,8 +272,8 @@ class TestPhysics:
         easy_env.step(SwarmCommand(action_type="recharge_drone", drone_id="D1"))
         obs, _, _, _ = easy_env.step(SwarmCommand(action_type="no_op"))
         d1 = next(d for d in obs.drones if d.id == "D1")
-        # 80 + 15 = 95 (still charging)
-        assert d1.battery == pytest.approx(95.0)
+        # 80 - 0.1 (idle drain during step 1) + 15 (charging during step 2) = 94.9
+        assert d1.battery == pytest.approx(94.9)
 
     def test_charging_exceeds_100_caps_and_goes_idle(self, easy_env):
         """A nearly-full charging drone must cap at 100 and switch to idle."""
@@ -286,7 +286,7 @@ class TestPhysics:
 
     def test_zero_battery_drone_fails(self, easy_env):
         """A drone whose battery hits 0 must transition to 'failed' status."""
-        easy_env.drones[0].battery = 0.5  # just below 1 drain tick
+        easy_env.drones[0].battery = 0.05  # just below 0.1 drain tick
         obs, _, _, _ = easy_env.step(SwarmCommand(action_type="no_op"))
         d1 = next(d for d in obs.drones if d.id == "D1")
         assert d1.status == "failed"
@@ -295,7 +295,7 @@ class TestPhysics:
     def test_failed_drone_cargo_delivery_also_fails(self, easy_env):
         """If a moving drone fails (battery = 0), its cargo delivery must be marked 'failed'."""
         easy_env.step(SwarmCommand(action_type="assign_delivery", drone_id="D1", target_id="P1"))
-        easy_env.drones[0].battery = 0.5  # will hit 0 on next physics tick
+        easy_env.drones[0].battery = 0.05  # will hit 0 on next physics tick
         obs, _, _, _ = easy_env.step(SwarmCommand(action_type="no_op"))
         p1 = next(d for d in obs.deliveries if d.id == "P1")
         assert p1.status == "failed"
@@ -360,7 +360,7 @@ class TestMovementAndCompletion:
         cmd = SwarmCommand(action_type="no_op")
         for _ in range(easy_env.max_steps):
             obs, _, done, _ = easy_env.step(cmd)
-            assert 0.0 <= obs.current_mission_score <= 1.0
+            assert 0.01 <= obs.current_mission_score <= 0.99
             if done:
                 break
 
