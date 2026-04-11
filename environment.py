@@ -77,7 +77,7 @@ class Observation(BaseModel):
     emergencies: List[Emergency]
     weather_condition: str
     weather_affected_areas: List[Tuple[int, int]]
-    current_mission_score: float
+    current_mission_score: int
     natural_language_summary: str
 
 # ==========================================
@@ -108,7 +108,7 @@ class SwarmEnvironment:
     def reset(self, **kwargs):
         """Resets the environment back to step 0 according to the selected Task."""
         self.time_step = 0
-        self.current_mission_score = 0.01
+        self.current_mission_score = 0
         self.weather_condition = "clear"
         self.weather_affected_areas = []
         self.drones = []
@@ -162,7 +162,7 @@ class SwarmEnvironment:
             f"Telemetry Cycle {self.time_step}: Meteorological sensors report {self.weather_condition}. "
             f"Logistics queue: {pending_count} UAV dispatches pending. "
             f"Fleet status: {idle_count} autonomous units awaiting routing. "
-            f"Current network efficiency score: {self.current_mission_score:.3f}."
+            f"Current network efficiency score: {self.current_mission_score}."
         )
         
         return Observation(
@@ -269,14 +269,9 @@ class SwarmEnvironment:
         # Reward normalizer (internal reward tracking)
         step_reward = sum(reward_breakdown.values())
         
-        # Calculate raw completion percentage (0.0 to 1.0)
-        completed_count = sum(1 for dlv in self.deliveries if dlv.status == "complete")
-        total_deliveries = len(self.deliveries)
-        raw_score = completed_count / total_deliveries
-        
-        # Clamp the score to strictly stay within the (0, 1) exclusive range
-        # This forces 0.0 -> 0.01 and 1.0 -> 0.99
-        self.current_mission_score = round(max(0.01, min(0.99, raw_score)), 3)
+        # Binary scoring: 1 if ALL deliveries complete, 0 otherwise
+        all_complete = all(dlv.status == "complete" for dlv in self.deliveries)
+        self.current_mission_score = 1 if all_complete else 0
         
         all_done = all(dlv.status in ["complete", "failed"] for dlv in self.deliveries)
         done = bool(all_done or self.time_step >= self.max_steps)
