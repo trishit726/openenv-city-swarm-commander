@@ -7,7 +7,7 @@ entrypoint: "environment.py:SwarmEnvironment"
 metrics:
   - name: "Mission Success Score"
     type: "float"
-    range: [0, 1]
+    range: [0.0, 1.0]
 
 tasks:
   - name: "easy"

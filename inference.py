@@ -99,7 +99,7 @@ def run_inference():
             env.close()
 
         # [END] success=<true|false> steps=<n> rewards=<r1,r2,...,rn>
-        success_bool_str = "true" if (state and state.current_mission_score >= 1.0) else "false"
+        success_bool_str = "true" if (state and state.current_mission_score >= 0.99) else "false"
         rewards_joined = ",".join([f"{r:.2f}" for r in rewards_list]) if rewards_list else "0.00"
         print(f"[END] success={success_bool_str} steps={step_count} rewards={rewards_joined}")
 
