@@ -269,10 +269,14 @@ class SwarmEnvironment:
         # Reward normalizer (internal reward tracking)
         step_reward = sum(reward_breakdown.values())
         
-        # Effective Binary scoring: 0.99 if ALL deliveries complete, 0.01 otherwise
-        # This satisfies strictly (0, 1) range while remaining binary.
-        all_complete = all(dlv.status == "complete" for dlv in self.deliveries)
-        self.current_mission_score = 0.99 if all_complete else 0.01
+        # Calculate raw completion percentage (0.0 to 1.0)
+        completed_count = sum(1 for dlv in self.deliveries if dlv.status == "complete")
+        total_deliveries = len(self.deliveries)
+        raw_score = completed_count / total_deliveries
+        
+        # Clamp the score to strictly stay within the (0, 1) exclusive range
+        # This forces 0.0 -> 0.01 and 1.0 -> 0.99
+        self.current_mission_score = round(max(0.01, min(0.99, raw_score)), 3)
         
         all_done = all(dlv.status in ["complete", "failed"] for dlv in self.deliveries)
         done = bool(all_done or self.time_step >= self.max_steps)
