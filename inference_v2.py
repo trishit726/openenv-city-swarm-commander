@@ -88,7 +88,7 @@ def run_task(task_type: str):
 
         # Calculate final metrics
         final_score = state.current_mission_score
-        success = final_score == 1  # 1 is success, 0 is failure
+        success = final_score >= 1.0  # 1.0 is success, 0.0 is failure
         
     except Exception as e:
         print(f"[DEBUG] Execution error: {e}")
