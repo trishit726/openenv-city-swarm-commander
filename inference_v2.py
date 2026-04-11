@@ -7,7 +7,7 @@ from environment import SwarmEnvironment, SwarmCommand
 
 # --- Environment Configuration (matches hackathon checklist) ---
 # Defaults ONLY for API_BASE_URL and MODEL_NAME — NOT for HF_TOKEN
-API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
+API_BASE_URL = os.getenv("API_BASE_URL", "https://api-inference.huggingface.co/v1/")
 MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o")
 HF_TOKEN = os.getenv("HF_TOKEN")          # No default — must be set as HF Space secret
 LOCAL_IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME")  # Optional: used when testing from_docker_image()

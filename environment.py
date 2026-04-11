@@ -114,6 +114,7 @@ class SwarmEnvironment:
         self.drones = []
         self.deliveries = []
         self.emergencies = []
+        self.last_command = None
         
         # Difficulty configuration
         if self.task == "easy":
@@ -156,10 +157,12 @@ class SwarmEnvironment:
         pending_count = sum(1 for d in self.deliveries if d.status == 'pending')
         idle_count = sum(1 for d in self.drones if d.status == 'idle')
         
+        # Upgrade terminology to sound like a real-world logistics dashboard
         summary = (
-            f"Step {self.time_step}: Weather is {self.weather_condition}. "
-            f"There are {pending_count} deliveries pending and {idle_count} drones currently idle. "
-            f"Current mission score is an established {self.current_mission_score:.3f}."
+            f"Telemetry Cycle {self.time_step}: Meteorological sensors report {self.weather_condition}. "
+            f"Logistics queue: {pending_count} UAV dispatches pending. "
+            f"Fleet status: {idle_count} autonomous units awaiting routing. "
+            f"Current network efficiency score: {self.current_mission_score:.3f}."
         )
         
         return Observation(
@@ -177,6 +180,13 @@ class SwarmEnvironment:
         """Steps the simulation forward strictly using exactly one valid action_type mapping."""
         self.time_step += 1
         reward_breakdown = {"movement": 0.0, "completion": 0.0, "emergency": 0.0, "penalty": 0.0}
+        
+        # --- NEW: Repetitive Action Penalty ---
+        current_command_dict = command.model_dump()
+        if self.last_command == current_command_dict:
+            reward_breakdown["penalty"] -= 0.15  # Heavy penalty for repeating the exact same action
+        self.last_command = current_command_dict
+        # --------------------------------------
         
         drone_map = {d.id: d for d in self.drones}
         delivery_map = {d.id: d for d in self.deliveries}
