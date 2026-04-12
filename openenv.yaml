@@ -12,15 +12,21 @@ metrics:
     range: [0.0, 1.0]
 
 tasks:
-  - name: "easy"
+  - id: easy_task
+    name: Easy Task
     description: "4 drones, 6 deliveries, clear weather. Tests basic strategic capability."
-    grader: "graders.easy:EasyGrader"
-  - name: "medium"
+    difficulty: easy
+    grader: server.graders:EasyGrader
+  - id: medium_task
+    name: Medium Task
     description: "6 drones, 12 deliveries, rain. Weather introduces strategic battery decay management."
-    grader: "graders.medium:MediumGrader"
-  - name: "hard"
+    difficulty: medium
+    grader: server.graders:MediumGrader
+  - id: hard_task
+    name: Hard Task
     description: "8 drones, 20 deliveries, storm + drone failure mechanics. Hardcore network incident orchestration."
-    grader: "graders.hard:HardGrader"
+    difficulty: hard
+    grader: server.graders:HardGrader
 
 baselines:
   easy:
